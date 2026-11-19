@@ -1,0 +1,181 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/kassdinzheng123/session-ir/schemas/session-ir.schema.json",
+  "title": "Session IR Bundle",
+  "description": "Model-agnostic intermediate representation for portable coding agent session traces.",
+  "type": "object",
+  "required": [
+    "ir_version",
+    "bundle_id",
+    "source",
+    "workspace",
+    "events",
+    "epistemic_state"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "ir_version": {
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "bundle_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "type": "object",
+      "required": ["agent", "session_id", "exported_at"],
+      "additionalProperties": false,
+      "properties": {
+        "agent": {
+          "type": "string",
+          "enum": ["devin", "claude-code", "codex", "other"]
+        },
+        "session_id": { "type": "string" },
+        "parent_session_id": { "type": ["string", "null"] },
+        "child_session_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "exported_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "workspace": {
+      "type": "object",
+      "required": ["branch", "base_sha", "head_sha"],
+      "additionalProperties": false,
+      "properties": {
+        "repo_url": { "type": "string" },
+        "branch": { "type": "string" },
+        "base_sha": { "type": "string", "pattern": "^[0-9a-f]{7,40}$" },
+        "head_sha": { "type": "string", "pattern": "^[0-9a-f]{7,40}$" },
+        "dirty": { "type": "boolean" },
+        "dirty_diff_blob_ref": { "type": ["string", "null"] }
+      }
+    },
+    "events": {
+      "type": "array",
+      "description": "Layer 1: Canonical Action & Observation DAG.",
+      "items": {
+        "type": "object",
+        "required": ["event_id", "timestamp", "kind", "git_sha", "payload"],
+        "additionalProperties": false,
+        "properties": {
+          "event_id": { "type": "string" },
+          "parent_event_ids": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "fs.read",
+              "fs.diff",
+              "shell.exec",
+              "search.query",
+              "web.fetch",
+              "vcs.checkpoint"
+            ]
+          },
+          "cwd": { "type": "string" },
+          "git_sha": { "type": "string", "pattern": "^[0-9a-f]{7,40}$" },
+          "exit_code": { "type": ["integer", "null"] },
+          "duration_ms": { "type": ["integer", "null"], "minimum": 0 },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "blob_refs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["role", "sha256", "bytes"],
+              "additionalProperties": false,
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "enum": ["stdout", "stderr", "diff", "search_results", "body", "file"]
+                },
+                "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+                "bytes": { "type": "integer", "minimum": 0 },
+                "preview": { "type": "string", "maxLength": 1024 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "epistemic_state": {
+      "type": "object",
+      "description": "Layer 2: Model-agnostic distilled knowledge stripped of private CoT.",
+      "required": [
+        "objective",
+        "verified_facts",
+        "ruled_out_hypotheses",
+        "open_constraints"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "objective": { "type": "string" },
+        "verified_facts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "statement", "evidence_event_ids"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string" },
+              "statement": { "type": "string" },
+              "files": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "evidence_event_ids": {
+                "type": "array",
+                "items": { "type": "string" },
+                "minItems": 1
+              }
+            }
+          }
+        },
+        "ruled_out_hypotheses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "hypothesis", "reason", "evidence_event_ids"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string" },
+              "hypothesis": { "type": "string" },
+              "reason": { "type": "string" },
+              "evidence_event_ids": {
+                "type": "array",
+                "items": { "type": "string" },
+                "minItems": 1
+              }
+            }
+          }
+        },
+        "open_constraints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "description", "blocking"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string" },
+              "description": { "type": "string" },
+              "blocking": { "type": "boolean" },
+              "repro_command": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "recommended_next_steps": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

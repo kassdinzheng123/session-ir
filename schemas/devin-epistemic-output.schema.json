@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Devin Epistemic Handoff Output",
+  "description": "Self-contained Draft 7 schema (no external $ref, < 64 KB) for Devin v3 POST /sessions structured_output_schema.",
+  "type": "object",
+  "required": [
+    "phase",
+    "git_head_sha",
+    "objective",
+    "verified_facts",
+    "ruled_out_hypotheses",
+    "open_constraints"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "phase": {
+      "type": "string",
+      "enum": ["investigating", "reproduced", "root_caused", "ready_for_handoff", "blocked"]
+    },
+    "git_head_sha": {
+      "type": "string",
+      "description": "Current git HEAD SHA inside the Devin sandbox."
+    },
+    "trace_artifact_ref": {
+      "type": ["string", "null"],
+      "description": "Attachment filename or git ref containing .agent-trace/events.jsonl."
+    },
+    "objective": {
+      "type": "string"
+    },
+    "verified_facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "statement", "evidence_summary"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "statement": { "type": "string" },
+          "files": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "evidence_summary": {
+            "type": "string",
+            "description": "Exact command, file:line, or event_id proving this fact."
+          }
+        }
+      }
+    },
+    "ruled_out_hypotheses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "hypothesis", "disproof"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "hypothesis": { "type": "string" },
+          "disproof": { "type": "string" }
+        }
+      }
+    },
+    "open_constraints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "blocking"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string" },
+          "blocking": { "type": "boolean" },
+          "repro_command": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "recommended_next_steps": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}
