@@ -1,0 +1,21 @@
+{
+  "items": [
+    {
+      "created_at": 1763541600,
+      "event_id": "msg_01",
+      "source": "user",
+      "origin": "api",
+      "message": "Reproduce the NTP clock-jump freeze bug, isolate root cause, and prepare handoff IR for Claude Code."
+    },
+    {
+      "created_at": 1763541695,
+      "event_id": "msg_02",
+      "source": "devin",
+      "origin": "session",
+      "message": "Environment bootstrapped. Reproduced test_ntp_backward_jump_does_not_freeze_bucket failure on MemoryStore; ruled out RedisStore and float rounding. Structured epistemic state and .agent-trace/events.jsonl ready for handoff."
+    }
+  ],
+  "end_cursor": "msg_02",
+  "has_next_page": false,
+  "total": 2
+}

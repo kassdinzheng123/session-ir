@@ -1,0 +1,195 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.7, pytest-8.3.3, pluggy-1.5.0
+rootdir: /workspace/rate-limiter
+collected 48 items
+
+tests/test_bucket_core.py::test_scenario_01 PASSED [2%] -- elapsed=3ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_02 PASSED [4%] -- elapsed=6ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_03 PASSED [6%] -- elapsed=9ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_04 PASSED [8%] -- elapsed=12ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_05 PASSED [10%] -- elapsed=15ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_06 PASSED [12%] -- elapsed=18ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_07 PASSED [14%] -- elapsed=21ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_08 PASSED [16%] -- elapsed=24ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_09 PASSED [18%] -- elapsed=27ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_10 PASSED [20%] -- elapsed=30ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_11 PASSED [22%] -- elapsed=33ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_12 PASSED [24%] -- elapsed=36ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_13 PASSED [26%] -- elapsed=39ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_14 PASSED [28%] -- elapsed=42ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_15 PASSED [30%] -- elapsed=45ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_16 PASSED [32%] -- elapsed=48ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_17 PASSED [34%] -- elapsed=51ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_18 PASSED [36%] -- elapsed=54ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_19 PASSED [38%] -- elapsed=57ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_20 PASSED [40%] -- elapsed=60ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_21 PASSED [42%] -- elapsed=63ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_22 PASSED [44%] -- elapsed=66ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_23 PASSED [46%] -- elapsed=69ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_24 PASSED [48%] -- elapsed=72ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_25 PASSED [50%] -- elapsed=75ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_26 PASSED [52%] -- elapsed=78ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_27 PASSED [54%] -- elapsed=81ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_28 PASSED [56%] -- elapsed=84ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_29 PASSED [58%] -- elapsed=87ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_30 PASSED [60%] -- elapsed=90ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_31 PASSED [62%] -- elapsed=93ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_32 PASSED [64%] -- elapsed=96ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_33 PASSED [66%] -- elapsed=99ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_34 PASSED [68%] -- elapsed=102ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_35 PASSED [70%] -- elapsed=105ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_36 PASSED [72%] -- elapsed=108ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_37 PASSED [74%] -- elapsed=111ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_38 PASSED [76%] -- elapsed=114ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_39 PASSED [78%] -- elapsed=117ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_40 PASSED [80%] -- elapsed=120ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_41 PASSED [82%] -- elapsed=123ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_42 PASSED [84%] -- elapsed=126ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_43 PASSED [86%] -- elapsed=129ms tokens_remaining=10.000
+tests/test_bucket_core.py::test_scenario_44 PASSED [88%] -- elapsed=132ms tokens_remaining=10.000
+tests/test_clock_skew.py::test_ntp_backward_jump_does_not_freeze_bucket FAILED [94%]
+tests/test_clock_skew.py::test_concurrent_refill_precision PASSED [96%]
+tests/test_redis_store.py::test_ttl_expiry PASSED [98%]
+tests/test_redis_store.py::test_lua_script_atomicity PASSED [100%]
+
+=================================== FAILURES ===================================
+_____________ test_ntp_backward_jump_does_not_freeze_bucket ____________________
+
+    def test_ntp_backward_jump_does_not_freeze_bucket(monkeypatch):
+        clock = FakeWallClock(start=1732000000.0)
+        bucket = TokenBucket(capacity=5, refill_rate=1.0, store=MemoryStore())
+        assert bucket.allow('tenant-a') is True
+        clock.jump(-300.0)  # simulate 5-minute NTP backward step
+        # After draining remaining tokens, monotonic time advances 2.0s
+        for _ in range(4):
+            assert bucket.allow('tenant-a') is True
+        clock.advance_monotonic(2.0)
+>       assert bucket.allow('tenant-a') is True
+E       AssertionError: assert False is True
+E       Debug state: last_refill=1732000000.0, now=1731999702.0, delta=-298.0 -> clamped to 0.0 -> bucket frozen for 298s
+
+src/limiter/bucket.py:64: in allow
+    elapsed = max(0.0, time.time() - state.last_refill_ts)
+=========================== short test summary info ============================
+FAILED tests/test_clock_skew.py::test_ntp_backward_jump_does_not_freeze_bucket - AssertionError: assert False is True
+1 failed, 47 passed in 1.84s
+DEBUG limiter.store.memory: key=tenant-a op=read slot=0 ts=1731999702.000 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=1 ts=1731999702.001 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=2 ts=1731999702.002 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=3 ts=1731999702.003 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=4 ts=1731999702.004 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=5 ts=1731999702.005 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=6 ts=1731999702.006 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=7 ts=1731999702.007 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=8 ts=1731999702.008 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=9 ts=1731999702.009 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=10 ts=1731999702.010 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=11 ts=1731999702.011 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=12 ts=1731999702.012 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=13 ts=1731999702.013 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=14 ts=1731999702.014 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=15 ts=1731999702.015 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=16 ts=1731999702.016 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=17 ts=1731999702.017 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=18 ts=1731999702.018 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=19 ts=1731999702.019 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=20 ts=1731999702.020 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=21 ts=1731999702.021 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=22 ts=1731999702.022 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=23 ts=1731999702.023 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=24 ts=1731999702.024 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=25 ts=1731999702.025 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=26 ts=1731999702.026 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=27 ts=1731999702.027 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=28 ts=1731999702.028 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=29 ts=1731999702.029 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=30 ts=1731999702.030 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=31 ts=1731999702.031 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=32 ts=1731999702.032 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=33 ts=1731999702.033 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=34 ts=1731999702.034 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=35 ts=1731999702.035 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=36 ts=1731999702.036 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=37 ts=1731999702.037 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=38 ts=1731999702.038 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=39 ts=1731999702.039 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=40 ts=1731999702.040 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=41 ts=1731999702.041 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=42 ts=1731999702.042 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=43 ts=1731999702.043 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=44 ts=1731999702.044 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=45 ts=1731999702.045 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=46 ts=1731999702.046 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=47 ts=1731999702.047 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=48 ts=1731999702.048 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=49 ts=1731999702.049 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=50 ts=1731999702.050 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=51 ts=1731999702.051 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=52 ts=1731999702.052 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=53 ts=1731999702.053 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=54 ts=1731999702.054 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=55 ts=1731999702.055 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=56 ts=1731999702.056 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=57 ts=1731999702.057 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=58 ts=1731999702.058 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=59 ts=1731999702.059 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=60 ts=1731999702.060 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=61 ts=1731999702.061 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=62 ts=1731999702.062 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=63 ts=1731999702.063 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=64 ts=1731999702.064 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=65 ts=1731999702.065 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=66 ts=1731999702.066 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=67 ts=1731999702.067 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=68 ts=1731999702.068 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=69 ts=1731999702.069 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=70 ts=1731999702.070 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=71 ts=1731999702.071 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=72 ts=1731999702.072 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=73 ts=1731999702.073 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=74 ts=1731999702.074 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=75 ts=1731999702.075 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=76 ts=1731999702.076 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=77 ts=1731999702.077 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=78 ts=1731999702.078 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=79 ts=1731999702.079 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=80 ts=1731999702.080 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=81 ts=1731999702.081 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=82 ts=1731999702.082 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=83 ts=1731999702.083 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=84 ts=1731999702.084 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=85 ts=1731999702.085 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=86 ts=1731999702.086 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=87 ts=1731999702.087 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=88 ts=1731999702.088 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=89 ts=1731999702.089 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=90 ts=1731999702.090 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=91 ts=1731999702.091 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=92 ts=1731999702.092 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=93 ts=1731999702.093 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=94 ts=1731999702.094 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=95 ts=1731999702.095 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=96 ts=1731999702.096 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=97 ts=1731999702.097 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=98 ts=1731999702.098 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=99 ts=1731999702.099 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=100 ts=1731999702.100 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=101 ts=1731999702.101 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=102 ts=1731999702.102 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=103 ts=1731999702.103 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=104 ts=1731999702.104 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=105 ts=1731999702.105 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=106 ts=1731999702.106 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=107 ts=1731999702.107 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=108 ts=1731999702.108 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=109 ts=1731999702.109 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=110 ts=1731999702.110 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=111 ts=1731999702.111 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=112 ts=1731999702.112 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=113 ts=1731999702.113 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=114 ts=1731999702.114 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=115 ts=1731999702.115 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=116 ts=1731999702.116 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=117 ts=1731999702.117 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=118 ts=1731999702.118 tokens=0.000000 state=frozen
+DEBUG limiter.store.memory: key=tenant-a op=read slot=119 ts=1731999702.119 tokens=0.000000 state=frozen

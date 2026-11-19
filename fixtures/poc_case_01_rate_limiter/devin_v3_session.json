@@ -1,0 +1,72 @@
+{
+  "session_id": "devin-poc01-a9f3c2",
+  "org_id": "org-session-ir-poc",
+  "status": "waiting_for_user",
+  "parent_session_id": null,
+  "child_session_ids": [],
+  "repo_url": "https://github.com/example/rate-limiter",
+  "acus_consumed": 1.4,
+  "structured_output": {
+    "phase": "ready_for_handoff",
+    "git_head_sha": "8f3c91a2b4d5e6f708192a3b4c5d6e7f8091a2b3",
+    "trace_artifact_ref": "attachment://sandbox_events.jsonl",
+    "objective": "Fix TokenBucket freeze on NTP backward clock jump without breaking RedisStore serialization.",
+    "verified_facts": [
+      {
+        "id": "F1",
+        "statement": "TokenBucket.allow() computes elapsed via time.time(), causing negative delta clamped to 0.0 for 298s after a 5-min NTP backward step.",
+        "files": [
+          "src/limiter/bucket.py"
+        ],
+        "evidence_summary": "evt_02 pytest failure at src/limiter/bucket.py:64"
+      },
+      {
+        "id": "F2",
+        "statement": "MemoryStore initializes last_refill_ts with time.time() at line 28, tightly coupling in-memory state to wall clock.",
+        "files": [
+          "src/limiter/store/memory.py"
+        ],
+        "evidence_summary": "evt_03 search.query time.time()"
+      },
+      {
+        "id": "F3",
+        "statement": "RedisStore already accepts caller-provided elapsed delta in Lua script and passes all 2 Redis tests untouched.",
+        "files": [
+          "src/limiter/store/redis_store.py"
+        ],
+        "evidence_summary": "evt_02 test_redis_store.py PASSED"
+      }
+    ],
+    "ruled_out_hypotheses": [
+      {
+        "id": "H1",
+        "hypothesis": "Bug is caused by Redis Lua script TTL expiry race condition",
+        "disproof": "evt_02 proves test_ntp_backward_jump fails on pure MemoryStore with Redis disabled, and test_redis_store passes 100%."
+      },
+      {
+        "id": "H2",
+        "hypothesis": "Floating-point precision loss in refill_rate multiplication",
+        "disproof": "evt_04 verified refill_rate=1.0 with integer seconds still yields 0.0 refill due to wall-clock delta=-298.0."
+      }
+    ],
+    "open_constraints": [
+      {
+        "id": "C1",
+        "description": "Switch TokenBucket & MemoryStore local timing to time.monotonic() while keeping optional injectable clock for unit tests.",
+        "blocking": true,
+        "repro_command": "pytest tests/test_clock_skew.py::test_ntp_backward_jump_does_not_freeze_bucket -v"
+      },
+      {
+        "id": "C2",
+        "description": "Preserve RedisStore wire format compatibility (do not serialize process-local monotonic floats into Redis).",
+        "blocking": true,
+        "repro_command": "pytest tests/test_redis_store.py -v"
+      }
+    ],
+    "recommended_next_steps": [
+      "Inject clock_fn=time.monotonic into TokenBucket and MemoryStore",
+      "Keep RedisStore on server-side Redis TIME / elapsed delta",
+      "Run full pytest suite and add regression test for backward + forward clock jump"
+    ]
+  }
+}

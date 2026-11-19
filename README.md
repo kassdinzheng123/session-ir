@@ -73,15 +73,35 @@ Devin does not expose raw internal step-by-step CoT or every low-level internal 
 
 ---
 
-## PoC #1: Devin → Claude Code Handoff
+## PoC #1: Devin → Claude Code Handoff (Runnable Prototype)
 
-- **Workflow**: Devin runs long-horizon async investigation in a sandbox (environment setup, bug reproduction, root-cause isolation) → exports Session IR → Claude Code hydrates the slice locally with zero warmup to author clean patches & unit tests.
-- **Evaluation (A/B on multi-file debugging benchmarks)**:
-  - Cold-start Claude Code vs. Devin-hydrated Claude Code
-  - Primary metrics:
-    1. **Redundant exploration reduction** (duplicate `search`/`read`/`test` tool calls eliminated)
-    2. **End-to-end token efficiency** (tokens to first verified fix)
-    3. **Final pass rate** (regression + target tests passing)
+**First Concrete Test Case (`fixtures/poc_case_01_rate_limiter/`):**
+- **Bug**: Multi-file `TokenBucket` freeze after a 5-minute NTP backward clock jump (`src/limiter/bucket.py:64` + `src/limiter/store/memory.py:28`), while `RedisStore` remains unaffected.
+- **Devin Phase**: Reproduces the failing test (`1 failed, 47 passed`, 18.4 KB verbose debug trace stored in content-addressed cold blob), isolates 3 verified facts (`F1`–`F3`), and rules out 2 dead-end hypotheses (`H1` Redis Lua TTL race, `H2` float precision).
+- **Pipeline Output (verified locally)**:
+  - Aligns Devin v3 `structured_output` + `messages` with sandbox `.agent-trace/events.jsonl` into `Session IR 0.1.0` (`sir_deaba8d7700d`).
+  - Reconciles `git_sha` drift (if `src/limiter/bucket.py` changes post-export, `F1` is auto-tagged `[STALE]` while `F2`/`F3` stay `[FRESH]`).
+  - Hydrates into 8 schema-valid Claude Code JSONL records with strict 1:1 `tool_use`/`tool_result` pairing, reducing hot context from **19,521 B → 4,463 B (77.1% reduction)** via cold blob pointers.
+
+### Quickstart (Zero External Dependencies)
+
+```bash
+# Run end-to-end tests (alignment, git_sha drift reconciliation, Claude Code JSONL hydration)
+pytest -v
+
+# Run CLI pipeline on PoC Case #1
+PYTHONPATH=src python3 -m session_ir.cli fixtures/poc_case_01_rate_limiter --out-dir out
+```
+
+---
+
+## 48-Hour Live Devin Milestone Plan ($50 Credit Budget)
+
+| Window | Milestone | Concrete Deliverable |
+| --- | --- | --- |
+| **H0 – H12** | Live Devin v3 capture | Run `DevinV3Client` against 3 real open-source multi-file bug issues with `devin-epistemic-output.schema.json` + sandbox `.agent-trace` sidecar; commit real anonymized traces under `fixtures/live_devin/`. |
+| **H12 – H30** | End-to-end Devin → Claude Code handoff | Feed exported Session IR bundles into local Claude Code sessions via `claude_hydrator.py` to generate & verify actual PR patches. |
+| **H30 – H48** | 3-way A/B benchmark report | Publish measured metrics (Cold Claude Code vs. Prose Handoff vs. Session IR Handoff): redundant tool calls, tokens to first passing test, and Pass@1. |
 
 ---
 
@@ -89,19 +109,22 @@ Devin does not expose raw internal step-by-step CoT or every low-level internal 
 
 ```text
 .
-├── README.md                                  # Overview & PoC plan
+├── README.md                                  # Overview, PoC #1 quickstart & 48h plan
 ├── docs/
 │   └── architecture.md                        # Detailed protocol, capture & hydration spec
-└── schemas/
-    ├── session-ir.schema.json                 # Full 3-layer Session IR bundle schema (Draft 7)
-    └── devin-epistemic-output.schema.json     # Self-contained schema for Devin v3 structured_output_schema
+├── schemas/
+│   ├── session-ir.schema.json                 # Full 3-layer Session IR bundle schema (Draft 7)
+│   └── devin-epistemic-output.schema.json     # Self-contained schema for Devin v3 structured_output_schema
+├── src/session_ir/
+│   ├── devin_client.py                        # Zero-dep Devin v3 API client (structured_output + messages + attachments)
+│   ├── aligner.py                             # Dual-channel Control+Execution aligner & IR validator
+│   ├── reconciler.py                          # git_sha Workspace Drift Reconciler (FRESH/STALE tagging)
+│   ├── claude_hydrator.py                     # Claude Code JSONL compiler (paired tool_use/tool_result + cold blobs)
+│   └── cli.py                                 # End-to-end CLI pipeline & hot-context compression metrics
+├── fixtures/poc_case_01_rate_limiter/         # Concrete PoC #1 fixture + content-addressed cold blobs
+└── tests/
+    └── test_poc_handoff.py                    # End-to-end pytest suite (3/3 passing)
 ```
-
----
-
-## Status
-
-Architecture & protocol specification ready. Next milestone: live Devin v3 capture + first end-to-end `Devin → Session IR → Claude Code` trace handoff.
 
 ## License
 
